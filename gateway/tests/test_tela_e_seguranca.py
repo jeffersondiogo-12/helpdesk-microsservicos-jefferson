@@ -23,6 +23,14 @@ def test_tela_fala_com_o_proprio_endereco(cliente):
     assert 'const API = ""' in (WEB / "app.js").read_text()
 
 
+def test_tela_tem_inventario_e_fluxo_para_abrir_chamado(cliente):
+    pagina = cliente.get("/").text
+    script = cliente.get("/app.js").text
+    assert 'data-view="inventory"' in pagina and 'data-view-panel="inventory"' in pagina
+    assert 'id="filtro-inventario"' in pagina and 'data-ticket-filter="em_atendimento"' in pagina
+    assert "function renderizarInventario()" in script and 'data-report-asset="${esc(a.id)}"' in script
+
+
 def test_tela_escapa_o_html(cliente):
     js = cliente.get("/app.js").text
     assert "const esc =" in js and "onclick" not in js

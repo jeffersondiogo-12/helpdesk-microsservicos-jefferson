@@ -9,11 +9,12 @@ const ROTULO = { aberto: "aberto", em_atendimento: "em atendimento", resolvido: 
 const PAGINAS = {
   overview: { eyebrow: "CENTRAL DE SUPORTE", title: "Visão geral", description: "Acompanhe o atendimento e as atividades recentes." },
   tickets: { eyebrow: "GESTÃO DE ATENDIMENTO", title: "Chamados", description: "Pesquise solicitações, acompanhe status e atualize responsáveis." },
+  inventory: { eyebrow: "GESTÃO DE ATIVOS", title: "Inventário", description: "Consulte equipamentos e relacione-os aos chamados." },
   create: { eyebrow: "CENTRAL DE SUPORTE", title: "Abrir chamado", description: "Conte para a equipe o que precisa de atenção." },
   notifications: { eyebrow: "CENTRAL DE SUPORTE", title: "Notificações", description: "Acompanhe as atualizações mais recentes dos seus chamados." },
 };
 
-let token = null, eu = null, usuarios = [];
+let token = null, eu = null, usuarios = [], ativos = [], filtroStatus = "all";
 try { token = sessionStorage.getItem("token"); } catch (e) { token = null; }
 
 async function req(metodo, caminho, corpo) {
@@ -52,18 +53,25 @@ function mudarPagina(pagina) {
 
 async function carregar() {
   $("erro").textContent = "";
+  $("erro-inventario").textContent = "";
   eu = await req("GET", "/auth/eu");
   $("quem").textContent = eu.nome + " (" + eu.perfil + ")";
   $("avatar").textContent = eu.nome.trim().charAt(0).toUpperCase();
   $("bem-vindo").textContent = eu.nome.trim().split(/\s+/)[0];
   // Cada parte da tela carrega separada: se um serviço cair, o resto continua aparecendo
   const avisosDeFalha = [];
-  const tentar = (caminho, padrao) => req("GET", caminho).catch((e) => { avisosDeFalha.push(e.message); return padrao; });
-  const [lista, ativos, chamados, painel, avisos] = await Promise.all([
+  const tentar = (caminho, padrao) => req("GET", caminho).catch((e) => {
+    avisosDeFalha.push(e.message);
+    if (caminho === "/ativos") $("erro-inventario").textContent = e.message;
+    return padrao;
+  });
+  const [lista, ativosCarregados, chamados, painel, avisos] = await Promise.all([
     tentar("/usuarios", []), tentar("/ativos", []), tentar("/chamados", []),
     tentar("/chamados/painel", { total: 0, por_status: {}, atrasados: 0 }), tentar("/notificacoes", []),
   ]);
   usuarios = lista;
+  ativos = ativosCarregados;
+  renderizarInventario();
   const ps = painel.por_status;
   $("kpis").innerHTML = [["Total", painel.total], ["Abertos", ps.aberto || 0], ["Em atendimento", ps.em_atendimento || 0],
     ["Resolvidos", (ps.resolvido || 0) + (ps.fechado || 0)], ["Atrasados", painel.atrasados]]
@@ -71,7 +79,7 @@ async function carregar() {
   const tecnicos = usuarios.filter((u) => u.perfil === "tecnico");
   $("lista").innerHTML = chamados.map((c) => {
     const busca = [c.id, c.titulo, nome(c.solicitante_id), nome(c.tecnico_id), c.prioridade, ROTULO[c.status]].join(" ").toLocaleLowerCase("pt-BR");
-    return `<tr data-search="${esc(busca)}">
+    return `<tr data-search="${esc(busca)}" data-status="${esc(c.status)}">
       <td>${esc(c.id)}</td><td><b>${esc(c.titulo)}</b><br><small>${esc(nome(c.solicitante_id))}</small></td>
       <td class="p-${esc(c.prioridade)}">${esc(c.prioridade)}</td>
       <td><span class="pill s-${esc(c.status)}">${esc(ROTULO[c.status])}</span></td>
@@ -92,13 +100,66 @@ function filtrarChamados() {
   const termo = $("filtro-chamados").value.trim().toLocaleLowerCase("pt-BR");
   const linhas = [...$("lista").querySelectorAll("tr[data-search]")];
   let encontrados = 0;
+  const contagens = { all: linhas.length, aberto: 0, em_atendimento: 0, concluidos: 0 };
   linhas.forEach((linha) => {
-    const corresponde = linha.dataset.search.includes(termo);
+    const status = linha.dataset.status;
+    if (status === "aberto" || status === "em_atendimento") contagens[status] += 1;
+    else if (status === "resolvido" || status === "fechado") contagens.concluidos += 1;
+  });
+  document.querySelectorAll("[data-filter-count]").forEach((contador) => {
+    contador.textContent = String(contagens[contador.dataset.filterCount] || 0);
+  });
+  linhas.forEach((linha) => {
+    const statusCorresponde = filtroStatus === "all" ||
+      linha.dataset.status === filtroStatus ||
+      (filtroStatus === "concluidos" && ["resolvido", "fechado"].includes(linha.dataset.status));
+    const corresponde = statusCorresponde && linha.dataset.search.includes(termo);
     linha.hidden = !corresponde;
     if (corresponde) encontrados += 1;
   });
   $("contagem-chamados").textContent = `${encontrados} ${encontrados === 1 ? "chamado" : "chamados"}`;
-  $("sem-resultados").hidden = !termo || encontrados > 0 || linhas.length === 0;
+  $("sem-resultados").hidden = encontrados > 0 || linhas.length === 0;
+}
+
+function renderizarInventario() {
+  const tipos = { computador: "Computador", notebook: "Notebook", impressora: "Impressora", rede: "Rede", outro: "Outro" };
+  const notebooks = ativos.filter((a) => a.tipo === "notebook").length;
+  const setores = new Set(ativos.map((a) => a.setor)).size;
+  $("resumo-inventario").innerHTML = [
+    ["Equipamentos", ativos.length, "ativos cadastrados"],
+    ["Setores", setores, "áreas atendidas"],
+    ["Notebooks", notebooks, "equipamentos móveis"],
+  ].map(([titulo, valor, detalhe]) =>
+    `<article class="inventory-stat"><span>${esc(titulo)}</span><b>${esc(valor)}</b><small>${esc(detalhe)}</small></article>`
+  ).join("");
+  $("lista-ativos").innerHTML = ativos.map((a) => {
+    const tipo = tipos[a.tipo] || tipos.outro;
+    const busca = [a.patrimonio, tipo, a.descricao, a.setor].join(" ").toLocaleLowerCase("pt-BR");
+    return `<article class="asset-card" data-search="${esc(busca)}">
+      <div class="asset-card-top"><span class="asset-type-icon" aria-hidden="true">${esc(tipo.slice(0, 2).toUpperCase())}</span><span class="asset-type">${esc(tipo)}</span></div>
+      <p class="asset-tag">PATRIMÔNIO</p><h3>${esc(a.patrimonio)}</h3>
+      <p class="asset-description">${esc(a.descricao)}</p>
+      <div class="asset-card-bottom"><span><small>Setor</small><b>${esc(a.setor)}</b></span>
+        <button type="button" class="asset-action" data-report-asset="${esc(a.id)}">Abrir chamado <span aria-hidden="true">→</span></button>
+      </div>
+    </article>`;
+  }).join("");
+  filtrarInventario();
+}
+
+function filtrarInventario() {
+  const termo = $("filtro-inventario").value.trim().toLocaleLowerCase("pt-BR");
+  const cards = [...$("lista-ativos").querySelectorAll(".asset-card")];
+  let encontrados = 0;
+  cards.forEach((card) => {
+    const corresponde = card.dataset.search.includes(termo);
+    card.hidden = !corresponde;
+    if (corresponde) encontrados += 1;
+  });
+  $("sem-ativos").textContent = ativos.length === 0
+    ? "Nenhum equipamento cadastrado."
+    : "Nenhum equipamento corresponde à busca.";
+  $("sem-ativos").hidden = ativos.length > 0 && encontrados > 0;
 }
 
 function acoes(c, tecnicos) {
@@ -137,11 +198,36 @@ document.querySelector(".main-nav").addEventListener("click", (e) => {
   const link = e.target.closest("button[data-view]");
   if (link) mudarPagina(link.dataset.view);
 });
+document.querySelector(".ticket-filters").addEventListener("click", (e) => {
+  const filtro = e.target.closest("button[data-ticket-filter]");
+  if (!filtro) return;
+  filtroStatus = filtro.dataset.ticketFilter;
+  document.querySelectorAll(".ticket-filter").forEach((botao) => {
+    botao.setAttribute("aria-pressed", String(botao === filtro));
+  });
+  filtrarChamados();
+});
+document.querySelector(".asset-grid").addEventListener("click", (e) => {
+  const botao = e.target.closest("button[data-report-asset]");
+  if (!botao) return;
+  $("ativo").value = botao.dataset.reportAsset;
+  mudarPagina("create");
+  $("titulo").focus();
+});
 document.addEventListener("click", (e) => {
   const atalho = e.target.closest("button[data-go-view]");
   if (atalho) mudarPagina(atalho.dataset.goView);
 });
 
+$("filtro-inventario").addEventListener("input", filtrarInventario);
+$("atualizar").addEventListener("click", async () => {
+  const botao = $("atualizar");
+  botao.disabled = true;
+  botao.classList.add("is-refreshing");
+  try { await carregar(); }
+  catch (e) { $("erro").textContent = e.message; $("erro-inventario").textContent = e.message; }
+  finally { botao.disabled = false; botao.classList.remove("is-refreshing"); }
+});
 $("tela-login").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("erro-login").textContent = "";
