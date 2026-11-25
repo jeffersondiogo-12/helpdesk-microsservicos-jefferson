@@ -31,6 +31,15 @@ def test_tela_tem_inventario_e_fluxo_para_abrir_chamado(cliente):
     assert "function renderizarInventario()" in script and 'data-report-asset="${esc(a.id)}"' in script
 
 
+def test_tela_permite_detalhar_e_comentar_chamados(cliente):
+    pagina = cliente.get("/").text
+    script = cliente.get("/app.js").text
+    assert '<dialog class="ticket-dialog" id="detalhe-chamado"' in pagina
+    assert 'id="novo-comentario"' in pagina and 'id="lista-comentarios"' in pagina
+    assert 'botao("detalhes", "Detalhes"' in script
+    assert 'req("POST", `/chamados/${chamadoId}/comentarios`' in script
+
+
 def test_tela_escapa_o_html(cliente):
     js = cliente.get("/app.js").text
     assert "const esc =" in js and "onclick" not in js

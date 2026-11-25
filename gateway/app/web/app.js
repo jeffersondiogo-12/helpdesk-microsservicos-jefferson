@@ -14,7 +14,7 @@ const PAGINAS = {
   notifications: { eyebrow: "CENTRAL DE SUPORTE", title: "Notificações", description: "Acompanhe as atualizações mais recentes dos seus chamados." },
 };
 
-let token = null, eu = null, usuarios = [], ativos = [], filtroStatus = "all";
+let token = null, eu = null, usuarios = [], ativos = [], filtroStatus = "all", chamadoAtivo = null;
 try { token = sessionStorage.getItem("token"); } catch (e) { token = null; }
 
 async function req(metodo, caminho, corpo) {
@@ -28,7 +28,10 @@ async function req(metodo, caminho, corpo) {
 }
 
 function guardarToken(t) { token = t; try { t ? sessionStorage.setItem("token", t) : sessionStorage.removeItem("token"); } catch (e) {} }
-function sair() { guardarToken(null); eu = null; mostrar(false); }
+function sair() {
+  if ($("detalhe-chamado").open) $("detalhe-chamado").close();
+  guardarToken(null); eu = null; chamadoAtivo = null; mostrar(false);
+}
 function mostrar(logado) {
   $("tela-login-wrapper").hidden = logado; $("tela-sistema").hidden = !logado; $("barra").hidden = !logado;
   if (logado) mudarPagina("overview");
@@ -164,12 +167,46 @@ function filtrarInventario() {
 
 function acoes(c, tecnicos) {
   const botao = (acao, texto, extra = "") => `<button type="button" data-acao="${acao}" data-id="${esc(c.id)}" ${extra}>${esc(texto)}</button>`;
+  let controles = "";
   if (equipe() && c.status === "aberto")
-    return `<select id="t${esc(c.id)}" aria-label="Técnico">${tecnicos.map((t) => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("")}</select>` + botao("atribuir", "Atribuir");
-  if (equipe() && c.status === "em_atendimento") return botao("resolvido", "Resolver");
-  if (c.status === "resolvido" && (equipe() || c.solicitante_id === eu.id))
-    return botao("fechado", "Fechar") + botao("em_atendimento", "Reabrir", 'class="sec"');
-  return "";
+    controles = `<select id="t${esc(c.id)}" aria-label="Técnico">${tecnicos.map((t) => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("")}</select>` + botao("atribuir", "Atribuir");
+  else if (equipe() && c.status === "em_atendimento") controles = botao("resolvido", "Resolver");
+  else if (c.status === "resolvido" && (equipe() || c.solicitante_id === eu.id))
+    controles = botao("fechado", "Fechar") + botao("em_atendimento", "Reabrir", 'class="sec"');
+  return botao("detalhes", "Detalhes", 'class="sec"') + controles;
+}
+
+function renderizarDetalhe(chamado) {
+  const status = ROTULO[chamado.status] || chamado.status;
+  const ativo = ativos.find((a) => a.id === chamado.ativo_id);
+  $("detalhe-chamado-conteudo").innerHTML = `
+    <div class="ticket-detail-title">
+      <div><p class="eyebrow">CHAMADO #${esc(chamado.id)}</p><h3>${esc(chamado.titulo)}</h3></div>
+      <span class="pill s-${esc(chamado.status)}">${esc(status)}</span>
+    </div>
+    <div class="ticket-detail-grid">
+      <div><small>Solicitante</small><b>${esc(nome(chamado.solicitante_id))}</b></div>
+      <div><small>Técnico responsável</small><b>${esc(nome(chamado.tecnico_id))}</b></div>
+      <div><small>Prioridade</small><b class="p-${esc(chamado.prioridade)}">${esc(chamado.prioridade)}</b></div>
+      <div><small>Prazo de SLA</small><b>${esc(fmt(chamado.prazo_sla))}</b></div>
+      <div><small>Equipamento</small><b>${esc(ativo ? `${ativo.patrimonio} · ${ativo.descricao}` : "Não informado")}</b></div>
+      <div><small>Aberto em</small><b>${esc(fmt(chamado.criado_em))}</b></div>
+    </div>
+    <div class="ticket-description"><h4>Descrição</h4><p>${esc(chamado.descricao).replace(/\n/g, "<br>")}</p></div>`;
+  const comentarios = chamado.comentarios || [];
+  $("lista-comentarios").innerHTML = comentarios.map((comentario) =>
+    `<article class="comment-item"><div class="comment-meta"><b>${esc(nome(comentario.autor_id))}</b><time>${esc(fmt(comentario.criado_em))}</time></div><p>${esc(comentario.texto).replace(/\n/g, "<br>")}</p></article>`
+  ).join("") || `<p class="empty-state">Nenhum comentário ainda. Use este espaço para acompanhar a solicitação.</p>`;
+  $("novo-comentario").hidden = chamado.status === "fechado";
+  $("comentario-fechado").hidden = chamado.status !== "fechado";
+  $("erro-comentario").textContent = "";
+}
+
+async function abrirDetalhe(chamadoId) {
+  const chamado = await req("GET", `/chamados/${chamadoId}`);
+  chamadoAtivo = chamado.id;
+  renderizarDetalhe(chamado);
+  if (!$("detalhe-chamado").open) $("detalhe-chamado").showModal();
 }
 
 async function acao(f) { try { await f(); await carregar(); } catch (e) { $("erro").textContent = e.message; } }
@@ -178,7 +215,8 @@ $("lista").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-acao]");
   if (!b) return;
   const id = Number(b.dataset.id);
-  if (b.dataset.acao === "atribuir") acao(() => req("PATCH", `/chamados/${id}/atribuir`, { tecnico_id: Number($("t" + id).value) }));
+  if (b.dataset.acao === "detalhes") abrirDetalhe(id).catch((erro) => { $("erro").textContent = erro.message; });
+  else if (b.dataset.acao === "atribuir") acao(() => req("PATCH", `/chamados/${id}/atribuir`, { tecnico_id: Number($("t" + id).value) }));
   else acao(() => req("PATCH", `/chamados/${id}/status`, { status: b.dataset.acao }));
 });
 
@@ -220,6 +258,23 @@ document.addEventListener("click", (e) => {
 });
 
 $("filtro-inventario").addEventListener("input", filtrarInventario);
+$("fechar-detalhe").addEventListener("click", () => $("detalhe-chamado").close());
+$("detalhe-chamado").addEventListener("close", () => { chamadoAtivo = null; });
+$("novo-comentario").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (chamadoAtivo === null) return;
+  const chamadoId = chamadoAtivo;
+  const botao = e.currentTarget.querySelector('button[type="submit"]');
+  botao.disabled = true;
+  $("erro-comentario").textContent = "";
+  try {
+    await req("POST", `/chamados/${chamadoId}/comentarios`, { texto: $("texto-comentario").value });
+    $("texto-comentario").value = "";
+    await carregar();
+    if ($("detalhe-chamado").open) await abrirDetalhe(chamadoId);
+  } catch (erro) { $("erro-comentario").textContent = erro.message; }
+  finally { botao.disabled = false; }
+});
 $("atualizar").addEventListener("click", async () => {
   const botao = $("atualizar");
   botao.disabled = true;

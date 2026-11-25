@@ -477,6 +477,54 @@ td small { color: var(--muted); font-size: 10px; }
 .aviso .aviso-mensagem { margin-top: 3px; color: #536177; font-size: 11px; }
 .aviso small { display: block; margin-top: 5px; color: #929daf; font-size: 9px; }
 
+.ticket-dialog {
+  width: min(720px, calc(100vw - 28px));
+  max-height: min(90vh, 820px);
+  overflow: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 28px 90px rgb(11 22 42 / 28%);
+  animation: dialog-enter .24s ease both;
+}
+.ticket-dialog::backdrop { background: rgb(10 19 34 / 58%); backdrop-filter: blur(3px); }
+.ticket-dialog-header { position: sticky; z-index: 1; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 22px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.ticket-dialog-header .eyebrow { margin-bottom: 3px; color: var(--blue-dark); }
+.ticket-dialog-header h2 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+.dialog-close { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 21px; line-height: 1; transition: background .2s ease, color .2s ease; }
+.dialog-close:hover { background: var(--canvas); color: var(--ink); }
+.ticket-detail-content { padding: 20px 22px 4px; }
+.ticket-detail-title { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.ticket-detail-title .eyebrow { margin-bottom: 5px; color: var(--blue-dark); }
+.ticket-detail-title h3 { margin: 0; font-size: 19px; letter-spacing: -.035em; }
+.ticket-detail-title .pill { margin-top: 2px; }
+.ticket-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.ticket-detail-grid > div { display: grid; min-width: 0; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); }
+.ticket-detail-grid small { color: var(--muted); font-size: 9px; }
+.ticket-detail-grid b { overflow-wrap: anywhere; color: var(--ink); font-size: 10px; }
+.ticket-description { margin-top: 14px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; }
+.ticket-description h4 { margin: 0 0 5px; font-size: 11px; }
+.ticket-description p { margin: 0; color: #5f6e84; font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
+.comments-section { padding: 16px 22px 22px; }
+.comments-heading { margin-bottom: 8px; }
+.comments-heading .eyebrow { margin-bottom: 2px; color: var(--blue-dark); }
+.comments-heading h3 { margin: 0; font-size: 14px; }
+.comment-list { display: grid; gap: 8px; max-height: 230px; overflow-y: auto; }
+.comment-item { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); animation: row-enter .25s ease both; }
+.comment-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.comment-meta b { color: var(--ink); font-size: 10px; }
+.comment-meta time { color: var(--muted); font-size: 9px; }
+.comment-item p { margin: 6px 0 0; color: #5f6e84; font-size: 11px; overflow-wrap: anywhere; }
+.comment-form { display: grid; justify-items: start; gap: 7px; margin-top: 13px; }
+.comment-form label { margin: 0; }
+.comment-form textarea { min-height: 78px; }
+.comment-form .erro { margin: 0; }
+.comment-form .primary-action { min-height: 36px; margin-left: auto; padding: 7px 11px; font-size: 10px; }
+.comment-form .primary-action span { font-size: 14px; }
+.closed-notice { margin: 12px 0 0; padding: 10px 12px; border-radius: 9px; background: #f1f3f7; color: #69758a; font-size: 10px; }
+
 @keyframes card-enter {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -488,6 +536,10 @@ td small { color: var(--muted); font-size: 10px; }
 @keyframes row-enter {
   from { opacity: 0; transform: translateX(-5px); }
   to { opacity: 1; transform: translateX(0); }
+}
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes refresh-spin { to { transform: rotate(360deg); } }
 
@@ -544,6 +596,8 @@ td small { color: var(--muted); font-size: 10px; }
   .inventory-stat small { font-size: 8px; }
   .asset-grid { grid-template-columns: 1fr; }
   .asset-description { min-height: 0; }
+  .ticket-dialog-header, .ticket-detail-content, .comments-section { padding-right: 16px; padding-left: 16px; }
+  .ticket-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .overview-card, .service-card, .form-card { padding: 17px; }
   .view-toolbar { align-items: stretch; flex-direction: column; }
   .search-box { width: 100%; }

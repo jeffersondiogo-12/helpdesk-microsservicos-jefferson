@@ -13,7 +13,7 @@ código, o seu banco e o seu contêiner, atrás de um **API Gateway**. Nenhuma f
 - **Login** com e-mail e senha; cada pessoa vê e faz só o que o seu perfil permite.
 - Cadastra **usuários** e **equipamentos** (inventário de TI).
 - **Abre chamados** com prioridade e calcula o prazo de atendimento (SLA): crítica 4 h, alta 8 h, média 24 h, baixa 72 h.
-- **Atribui** chamados a técnicos, controla o **status** e aceita **comentários**.
+- **Atribui** chamados a técnicos, controla o **status** e aceita **comentários**. Na tela, os detalhes mostram descrição, equipamento, SLA e conversa; é possível comentar sem sair da lista.
 - Registra **notificações** quando um chamado é aberto, atribuído ou resolvido.
 - Mostra um **painel** com totais por status e chamados atrasados.
 
@@ -156,7 +156,7 @@ python scripts/testar_tudo.py           # roda os testes de cada serviço
 | `inventario` | 19 | cadastro e consulta, token em todas as rotas, perfil vindo do token, limites de tamanho |
 | `chamados` | 61 | regras de SLA e status, permissões por perfil, **chamadas HTTP** (token repassado, serviço fora, lento, resposta estranha), **eventos**, Redis fora |
 | `notificacoes` | 24 | eventos viram avisos, sem duplicar nem travar, serviço volta e lê o que ficou na fila |
-| `gateway` | 47 | rota certa para cada serviço, cabeçalhos permitidos, 503/504, `/saude`, tela e cabeçalhos de segurança |
+| `gateway` | 49 | rota certa para cada serviço, cabeçalhos permitidos, 503/504, `/saude`, detalhes e comentários na tela, cabeçalhos de segurança |
 
 A cada envio ao GitHub (Actions): testes e `pip-audit` de **cada serviço**, e depois um job que sobe tudo com
 `docker compose up --build` e roda `scripts/verificar.py` (inclusive derrubando o Inventário).

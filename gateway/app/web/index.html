@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HelpDesk TI</title>
-<link rel="stylesheet" href="/estilo.css?v=3">
+<link rel="stylesheet" href="/estilo.css?v=4">
 </head>
 <body>
 <header class="topbar">
@@ -188,7 +188,26 @@
       <div class="card notifications-card"><div id="avisos" class="notification-list"></div></div>
     </section>
   </section>
+
+  <dialog class="ticket-dialog" id="detalhe-chamado" aria-labelledby="titulo-detalhe-chamado">
+    <div class="ticket-dialog-header">
+      <div><p class="eyebrow">ACOMPANHAMENTO</p><h2 id="titulo-detalhe-chamado">Detalhes do chamado</h2></div>
+      <button class="dialog-close" id="fechar-detalhe" type="button" aria-label="Fechar detalhes">×</button>
+    </div>
+    <div id="detalhe-chamado-conteudo" class="ticket-detail-content"></div>
+    <section class="comments-section" aria-labelledby="titulo-comentarios">
+      <div class="comments-heading"><div><p class="eyebrow">CONVERSA</p><h3 id="titulo-comentarios">Comentários</h3></div></div>
+      <div id="lista-comentarios" class="comment-list"></div>
+      <p id="comentario-fechado" class="closed-notice" hidden>Este chamado foi fechado e não aceita novos comentários.</p>
+      <form id="novo-comentario" class="comment-form">
+        <label for="texto-comentario">Adicionar comentário</label>
+        <textarea id="texto-comentario" rows="3" maxlength="2000" required placeholder="Escreva uma atualização para este chamado..."></textarea>
+        <p id="erro-comentario" class="erro" role="alert" aria-live="polite"></p>
+        <button class="primary-action" type="submit">Enviar comentário <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+  </dialog>
 </main>
-<script src="/app.js?v=3"></script>
+<script src="/app.js?v=4"></script>
 </body>
 </html>
