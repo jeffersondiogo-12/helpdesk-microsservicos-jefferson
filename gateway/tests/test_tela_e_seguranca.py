@@ -40,6 +40,15 @@ def test_tela_permite_detalhar_e_comentar_chamados(cliente):
     assert 'req("POST", `/chamados/${chamadoId}/comentarios`' in script
 
 
+def test_tela_tem_fila_de_destaques_e_navegacao_pelo_historico(cliente):
+    pagina = cliente.get("/").text
+    script = cliente.get("/app.js").text
+    assert 'id="chamados-em-foco"' in pagina
+    assert "function renderizarDestaques(chamados)" in script
+    assert 'history.pushState({ pagina }' in script
+    assert 'window.addEventListener("popstate"' in script
+
+
 def test_tela_escapa_o_html(cliente):
     js = cliente.get("/app.js").text
     assert "const esc =" in js and "onclick" not in js

@@ -156,7 +156,7 @@ python scripts/testar_tudo.py           # roda os testes de cada serviço
 | `inventario` | 19 | cadastro e consulta, token em todas as rotas, perfil vindo do token, limites de tamanho |
 | `chamados` | 61 | regras de SLA e status, permissões por perfil, **chamadas HTTP** (token repassado, serviço fora, lento, resposta estranha), **eventos**, Redis fora |
 | `notificacoes` | 24 | eventos viram avisos, sem duplicar nem travar, serviço volta e lê o que ficou na fila |
-| `gateway` | 49 | rota certa para cada serviço, cabeçalhos permitidos, 503/504, `/saude`, detalhes e comentários na tela, cabeçalhos de segurança |
+| `gateway` | 50 | rota certa para cada serviço, cabeçalhos permitidos, 503/504, `/saude`, fila em destaque, navegação, detalhes e comentários, cabeçalhos de segurança |
 
 A cada envio ao GitHub (Actions): testes e `pip-audit` de **cada serviço**, e depois um job que sobe tudo com
 `docker compose up --build` e roda `scripts/verificar.py` (inclusive derrubando o Inventário).

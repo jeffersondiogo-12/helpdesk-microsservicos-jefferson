@@ -34,16 +34,24 @@ function sair() {
 }
 function mostrar(logado) {
   $("tela-login-wrapper").hidden = logado; $("tela-sistema").hidden = !logado; $("barra").hidden = !logado;
-  if (logado) mudarPagina("overview");
+  if (logado) mudarPagina(paginaNaUrl() || "overview", false);
 }
 const nome = (id) => (usuarios.find((u) => u.id === id) || {}).nome || "—";
 const equipe = () => eu && (eu.perfil === "tecnico" || eu.perfil === "admin");
 
-function mudarPagina(pagina) {
+function paginaNaUrl() {
+  const pagina = location.hash.slice(1);
+  return Object.prototype.hasOwnProperty.call(PAGINAS, pagina) ? pagina : null;
+}
+
+function mudarPagina(pagina, registrarHistorico = true) {
   const detalhes = PAGINAS[pagina];
   if (!detalhes) return;
   document.querySelectorAll("[data-view-panel]").forEach((painel) => {
     painel.hidden = painel.dataset.viewPanel !== pagina;
+  });
+  window.addEventListener("popstate", () => {
+    if (token) mudarPagina(paginaNaUrl() || "overview", false);
   });
   document.querySelectorAll(".nav-link").forEach((link) => {
     if (link.dataset.view === pagina) link.setAttribute("aria-current", "page");
@@ -52,6 +60,8 @@ function mudarPagina(pagina) {
   $("page-eyebrow").textContent = detalhes.eyebrow;
   $("page-title").textContent = detalhes.title;
   $("page-description").textContent = detalhes.description;
+  if (registrarHistorico && location.hash !== `#${pagina}`)
+    history.pushState({ pagina }, "", `#${pagina}`);
 }
 
 async function carregar() {
@@ -75,6 +85,7 @@ async function carregar() {
   usuarios = lista;
   ativos = ativosCarregados;
   renderizarInventario();
+  renderizarDestaques(chamados);
   const ps = painel.por_status;
   $("kpis").innerHTML = [["Total", painel.total], ["Abertos", ps.aberto || 0], ["Em atendimento", ps.em_atendimento || 0],
     ["Resolvidos", (ps.resolvido || 0) + (ps.fechado || 0)], ["Atrasados", painel.atrasados]]
@@ -148,6 +159,25 @@ function renderizarInventario() {
     </article>`;
   }).join("");
   filtrarInventario();
+}
+
+function renderizarDestaques(chamados) {
+  const ativos = chamados
+    .filter((chamado) => chamado.status === "aberto" || chamado.status === "em_atendimento")
+    .sort((a, b) => new Date(a.prazo_sla) - new Date(b.prazo_sla));
+  const abertos = ativos.filter((chamado) => chamado.status === "aberto").length;
+  $("overview-active-count").textContent = String(ativos.length);
+  $("overview-open-count").textContent = String(abertos);
+  $("overview-working-count").textContent = String(ativos.length - abertos);
+  $("chamados-em-foco").innerHTML = ativos.slice(0, 4).map((chamado) => {
+    const atrasado = new Date(chamado.prazo_sla).getTime() < Date.now();
+    return `<button type="button" class="focus-ticket" data-foco-id="${esc(chamado.id)}" aria-label="Abrir detalhes do chamado #${esc(chamado.id)}">
+      <span class="focus-priority p-${esc(chamado.prioridade)}" aria-hidden="true"></span>
+      <span class="focus-ticket-copy"><b>${esc(chamado.titulo)}</b><small>#${esc(chamado.id)} · ${esc(nome(chamado.solicitante_id))}</small></span>
+      <span class="focus-ticket-meta"><span class="pill s-${esc(chamado.status)}">${esc(ROTULO[chamado.status])}</span><small class="${atrasado ? "focus-overdue" : ""}">${atrasado ? "SLA vencido" : "SLA"} · ${esc(fmt(chamado.prazo_sla))}</small></span>
+      <span class="focus-ticket-arrow" aria-hidden="true">↗</span>
+    </button>`;
+  }).join("") || `<p class="focus-empty">Tudo em dia. Não há chamados ativos para acompanhar.</p>`;
 }
 
 function filtrarInventario() {
@@ -251,6 +281,10 @@ document.querySelector(".asset-grid").addEventListener("click", (e) => {
   $("ativo").value = botao.dataset.reportAsset;
   mudarPagina("create");
   $("titulo").focus();
+});
+$("chamados-em-foco").addEventListener("click", (e) => {
+  const botao = e.target.closest("button[data-foco-id]");
+  if (botao) abrirDetalhe(Number(botao.dataset.focoId)).catch((erro) => { $("erro").textContent = erro.message; });
 });
 document.addEventListener("click", (e) => {
   const atalho = e.target.closest("button[data-go-view]");

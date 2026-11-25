@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HelpDesk TI</title>
-<link rel="stylesheet" href="/estilo.css?v=4">
+<link rel="stylesheet" href="/estilo.css?v=5">
 </head>
 <body>
 <header class="topbar">
@@ -20,6 +20,17 @@
 </header>
 
 <main class="login-stage" id="tela-login-wrapper">
+  <section class="login-aside" aria-label="Central de suporte HelpDesk TI">
+    <div class="login-aside-kicker"><span class="status-dot"></span> CENTRAL DE SUPORTE INTERNO</div>
+    <h2>Problemas de TI?<br><span>A gente acompanha.</span></h2>
+    <p>Abra uma solicitação, acompanhe o prazo e converse com a equipe em um único lugar.</p>
+    <div class="login-flow" aria-label="Etapas do atendimento">
+      <div><span>01</span><b>Solicitação</b><i aria-hidden="true">→</i></div>
+      <div><span>02</span><b>Acompanhamento</b><i aria-hidden="true">→</i></div>
+      <div><span>03</span><b>Solução</b><i aria-hidden="true">✓</i></div>
+    </div>
+    <div class="login-orbit" aria-hidden="true"><span>HD</span><i></i><b></b></div>
+  </section>
   <form class="login-card" id="tela-login">
     <div class="login-kicker"><span class="status-dot"></span> CENTRAL DE ATENDIMENTO</div>
     <h1>Bem-vindo de volta</h1>
@@ -90,32 +101,46 @@
     <section class="view" id="view-overview" data-view-panel="overview">
       <div class="welcome-card">
         <div class="welcome-copy">
-          <span class="welcome-label">PAINEL DE ATENDIMENTO</span>
+          <span class="welcome-label">SEU SUPORTE, EM FOCO</span>
           <h2>Olá, <span id="bem-vindo">equipe</span>!</h2>
-          <p>Veja o panorama dos chamados e continue de onde parou.</p>
-          <button type="button" class="welcome-link" data-go-view="tickets">Acompanhar chamados <span aria-hidden="true">→</span></button>
+          <p>Prioridades, prazos e solicitações reunidos em um só lugar.</p>
+          <div class="welcome-actions">
+            <button type="button" class="welcome-link" data-go-view="tickets">Ver chamados <span aria-hidden="true">→</span></button>
+            <button type="button" class="welcome-secondary" data-go-view="create">Abrir solicitação <span aria-hidden="true">+</span></button>
+          </div>
         </div>
-        <div class="welcome-art" aria-hidden="true"><span>HD</span><i></i><b></b></div>
+        <div class="welcome-summary" aria-label="Resumo da fila de atendimento">
+          <div class="summary-kicker"><span class="summary-live" aria-hidden="true"></span> RESUMO DA FILA</div>
+          <div class="summary-total" id="overview-active-count">0</div>
+          <div class="summary-label">chamados ativos</div>
+          <div class="summary-breakdown">
+            <span>Abertos <b id="overview-open-count">0</b></span>
+            <span>Em atendimento <b id="overview-working-count">0</b></span>
+          </div>
+        </div>
       </div>
       <div class="kpis" id="kpis" aria-label="Resumo dos chamados"></div>
       <div class="overview-bottom">
-        <div class="card overview-card">
+        <section class="card overview-card priority-card" aria-labelledby="titulo-fila-destaque">
           <div class="card-heading">
-            <div><p class="eyebrow">ACESSO RÁPIDO</p><h2>O que você precisa fazer?</h2></div>
+            <div><p class="eyebrow">ACOMPANHAMENTO</p><h2 id="titulo-fila-destaque">Chamados para acompanhar</h2></div>
+            <button type="button" class="inline-action" data-go-view="tickets">Ver fila <span aria-hidden="true">→</span></button>
+          </div>
+          <div class="ticket-focus-list" id="chamados-em-foco"></div>
+        </section>
+        <section class="card quick-card" aria-labelledby="titulo-acesso-rapido">
+          <div class="quick-card-heading">
+            <span class="quick-card-mark" aria-hidden="true">↗</span>
+            <p class="eyebrow">ACESSO RÁPIDO</p>
+            <h2 id="titulo-acesso-rapido">O que você precisa?</h2>
+            <p>Atalhos para as tarefas mais comuns.</p>
           </div>
           <div class="shortcut-grid">
-            <button type="button" class="shortcut" data-go-view="tickets"><span class="shortcut-icon tickets-icon" aria-hidden="true">01</span><span><b>Ver chamados</b><small>Acompanhe status e prazos</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
-            <button type="button" class="shortcut" data-go-view="inventory"><span class="shortcut-icon tickets-icon" aria-hidden="true">TI</span><span><b>Consultar inventário</b><small>Encontre equipamentos por setor</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
-            <button type="button" class="shortcut" data-go-view="create"><span class="shortcut-icon create-icon" aria-hidden="true">+</span><span><b>Abrir chamado</b><small>Solicite suporte técnico</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
-            <button type="button" class="shortcut" data-go-view="notifications"><span class="shortcut-icon notice-icon" aria-hidden="true">✦</span><span><b>Notificações</b><small>Veja as últimas atualizações</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" class="shortcut" data-go-view="create"><span class="shortcut-icon create-icon" aria-hidden="true">+</span><span><b>Abrir chamado</b><small>Solicitar suporte técnico</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" class="shortcut" data-go-view="inventory"><span class="shortcut-icon tickets-icon" aria-hidden="true">TI</span><span><b>Consultar inventário</b><small>Localizar um equipamento</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" class="shortcut" data-go-view="notifications"><span class="shortcut-icon notice-icon" aria-hidden="true">✦</span><span><b>Notificações</b><small>Ver atualizações recentes</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
           </div>
-        </div>
-        <div class="card service-card">
-          <span class="service-icon" aria-hidden="true">✓</span>
-          <p class="eyebrow">FLUXO CONECTADO</p>
-          <h2>Suporte em um só lugar</h2>
-          <p>Chamados, inventário e notificações trabalham juntos para acompanhar cada solicitação.</p>
-        </div>
+        </section>
       </div>
     </section>
 
@@ -208,6 +233,6 @@
     </section>
   </dialog>
 </main>
-<script src="/app.js?v=4"></script>
+<script src="/app.js?v=5"></script>
 </body>
 </html>
