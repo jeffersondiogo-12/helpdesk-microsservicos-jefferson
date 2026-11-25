@@ -1,0 +1,18 @@
+from datetime import datetime
+
+from sqlalchemy import DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database import Base
+
+
+class Notificacao(Base):
+    __tablename__ = "notificacoes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Id da mensagem no Redis. Ser único garante um aviso por evento, mesmo se a entrega se repetir.
+    evento_id: Mapped[str] = mapped_column(String(40), unique=True)
+    tipo: Mapped[str] = mapped_column(String(40))
+    destinatario_id: Mapped[int] = mapped_column(index=True)  # id no serviço de Usuários (sem chave estrangeira)
+    mensagem: Mapped[str] = mapped_column(String(300))
+    criada_em: Mapped[datetime] = mapped_column(DateTime)

@@ -1,0 +1,64 @@
+name: Testes e segurança
+on: [push, pull_request]
+
+# O workflow só pode ler o código (privilégio mínimo)
+permissions:
+  contents: read
+
+jobs:
+  # Cada serviço é um projeto próprio: instala as suas dependências e roda os seus testes
+  servicos:
+    name: ${{ matrix.servico }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        servico: [usuarios, inventario, chamados, notificacoes, gateway]
+    defaults:
+      run:
+        working-directory: ${{ matrix.servico }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Testes (inclui testes de segurança)
+        run: pytest -q
+      - name: Dependências com falhas conhecidas
+        run: pip-audit -r requirements.txt
+
+  # Tudo junto, como o professor vai rodar: docker compose up --build
+  integracao:
+    name: tudo junto (docker compose)
+    needs: servicos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Sobe tudo com um comando
+        run: docker compose up --build --detach
+      - name: Espera o gateway responder (ele só sobe depois dos serviços saudáveis)
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8000/saude > /dev/null && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:8000/saude
+          docker compose ps
+      - name: Fluxo completo e segurança, pelo gateway
+        run: python3 scripts/verificar.py fluxo seguranca
+      - name: Um serviço cai (Inventário parado) e o resto segue
+        run: |
+          docker compose stop inventario
+          python3 scripts/verificar.py falha
+          docker compose start inventario
+      - name: Logs (só se algo falhou)
+        if: failure()
+        run: docker compose logs --no-color --tail=80
+      - name: Derruba tudo
+        if: always()
+        run: docker compose down --volumes

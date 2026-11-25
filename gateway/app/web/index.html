@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HelpDesk TI</title>
+<link rel="stylesheet" href="/estilo.css?v=2">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="HelpDesk TI, início">
+    <span class="brand-mark" aria-hidden="true">HD</span>
+    <span class="brand-copy"><b>HelpDesk TI</b><small>· microsserviços</small></span>
+  </a>
+  <div class="usuario" id="barra" hidden>
+    <span class="avatar" id="avatar" aria-hidden="true">U</span>
+    <span class="user-copy"><b id="quem"></b><small>Conta ativa</small></span>
+    <button id="sair" class="logout" type="button">Sair</button>
+  </div>
+</header>
+
+<main class="login-stage" id="tela-login-wrapper">
+  <form class="login-card" id="tela-login">
+    <div class="login-kicker"><span class="status-dot"></span> CENTRAL DE ATENDIMENTO</div>
+    <h1>Bem-vindo de volta</h1>
+    <p class="login-intro">Entre para acompanhar e resolver chamados de TI.</p>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" required value="carla@empresa.com">
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" required>
+    <button class="login-submit" type="submit"><span>Entrar no sistema</span><span aria-hidden="true">→</span></button>
+    <div id="erro-login" class="erro" role="alert" aria-live="polite"></div>
+    <details class="contas">
+      <summary>Contas de demonstração</summary>
+      <p><code>admin@empresa.com</code> administrador</p>
+      <p><code>carla@empresa.com</code> técnica</p>
+      <p><code>ana@empresa.com</code> solicitante</p>
+      <small>Senha definida em <code>SENHA_EXEMPLO</code>; consulte o README.</small>
+    </details>
+  </form>
+</main>
+
+<main class="app-shell" id="tela-sistema" hidden>
+  <aside class="sidebar">
+    <p class="nav-caption">ESPAÇO DE TRABALHO</p>
+    <nav class="main-nav" aria-label="Navegação principal">
+      <button class="nav-link" type="button" data-view="overview" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+        <span>Visão geral</span>
+      </button>
+      <button class="nav-link" type="button" data-view="tickets">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v3a3 3 0 0 0 0 6v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a3 3 0 0 0 0-6V6a2 2 0 0 1 2-2Z"/><path d="M13 8v2m0 4v2"/></svg>
+        <span>Chamados</span>
+      </button>
+      <button class="nav-link" type="button" data-view="create">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8m-4-4h8"/></svg>
+        <span>Abrir chamado</span>
+      </button>
+      <button class="nav-link" type="button" data-view="notifications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+        <span>Notificações</span><span class="nav-count" id="nav-notification-count" hidden></span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>
+      <div><b>Ambiente ativo</b><small>HelpDesk interno</small></div>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow" id="page-eyebrow">CENTRAL DE SUPORTE</p>
+        <h1 id="page-title" tabindex="-1">Visão geral</h1>
+        <p id="page-description">Acompanhe o atendimento e as atividades recentes.</p>
+      </div>
+      <button class="primary-action" type="button" data-go-view="create"><span aria-hidden="true">+</span> Novo chamado</button>
+    </div>
+
+    <section class="view" id="view-overview" data-view-panel="overview">
+      <div class="welcome-card">
+        <div class="welcome-copy">
+          <span class="welcome-label">PAINEL DE ATENDIMENTO</span>
+          <h2>Olá, <span id="bem-vindo">equipe</span>!</h2>
+          <p>Veja o panorama dos chamados e continue de onde parou.</p>
+          <button type="button" class="welcome-link" data-go-view="tickets">Acompanhar chamados <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="welcome-art" aria-hidden="true"><span>HD</span><i></i><b></b></div>
+      </div>
+      <div class="kpis" id="kpis" aria-label="Resumo dos chamados"></div>
+      <div class="overview-bottom">
+        <div class="card overview-card">
+          <div class="card-heading">
+            <div><p class="eyebrow">ACESSO RÁPIDO</p><h2>O que você precisa fazer?</h2></div>
+          </div>
+          <div class="shortcut-grid">
+            <button type="button" class="shortcut" data-go-view="tickets"><span class="shortcut-icon tickets-icon" aria-hidden="true">01</span><span><b>Ver chamados</b><small>Acompanhe status e prazos</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" class="shortcut" data-go-view="create"><span class="shortcut-icon create-icon" aria-hidden="true">+</span><span><b>Abrir chamado</b><small>Solicite suporte técnico</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+            <button type="button" class="shortcut" data-go-view="notifications"><span class="shortcut-icon notice-icon" aria-hidden="true">✦</span><span><b>Notificações</b><small>Veja as últimas atualizações</small></span><span class="shortcut-arrow" aria-hidden="true">↗</span></button>
+          </div>
+        </div>
+        <div class="card service-card">
+          <span class="service-icon" aria-hidden="true">✓</span>
+          <p class="eyebrow">FLUXO CONECTADO</p>
+          <h2>Suporte em um só lugar</h2>
+          <p>Chamados, inventário e notificações trabalham juntos para acompanhar cada solicitação.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-tickets" data-view-panel="tickets" hidden>
+      <div class="view-toolbar">
+        <div><h2>Fila de atendimento</h2><p>Acompanhe prioridades, responsáveis e prazos de SLA.</p></div>
+        <label class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+          <input id="filtro-chamados" type="search" placeholder="Buscar chamados..." autocomplete="off">
+        </label>
+      </div>
+      <div class="card table-card">
+        <div class="table-meta"><span>Chamados</span><span id="contagem-chamados"></span></div>
+        <div class="table-scroll">
+          <table aria-label="Lista de chamados">
+            <thead><tr><th>#</th><th>Chamado</th><th>Prioridade</th><th>Status</th><th>Técnico</th><th>Prazo (SLA)</th><th>Ações</th></tr></thead>
+            <tbody id="lista"></tbody>
+          </table>
+        </div>
+        <p id="sem-resultados" class="empty-state" hidden>Nenhum chamado corresponde à busca.</p>
+        <div id="erro" class="erro" role="alert" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-create" data-view-panel="create" hidden>
+      <div class="form-layout">
+        <form class="card form-card" id="novo">
+          <div class="form-title"><span class="form-icon" aria-hidden="true">+</span><div><p class="eyebrow">NOVA SOLICITAÇÃO</p><h2>Abrir chamado</h2></div></div>
+          <p class="form-intro">Descreva o problema para que a equipe possa ajudar.</p>
+          <label for="titulo">Título</label><input id="titulo" required minlength="3" maxlength="120" value="Sem acesso à internet">
+          <label for="descricao">Descrição</label><textarea id="descricao" rows="4" required minlength="3" maxlength="2000">O cabo está conectado, mas não navega.</textarea>
+          <div class="form-row">
+            <div><label for="prioridade">Prioridade</label><select id="prioridade"><option value="baixa">Baixa (72 h)</option><option value="media">Média (24 h)</option><option value="alta" selected>Alta (8 h)</option><option value="critica">Crítica (4 h)</option></select></div>
+            <div><label for="ativo">Equipamento</label><select id="ativo"></select></div>
+          </div>
+          <button class="primary-action submit-action" type="submit">Enviar chamado <span aria-hidden="true">→</span></button>
+        </form>
+        <aside class="form-note">
+          <span class="form-note-icon" aria-hidden="true">i</span>
+          <p class="eyebrow">PRAZO DE ATENDIMENTO</p>
+          <h2>Prioridade define o SLA</h2>
+          <p>Escolha a prioridade de acordo com o impacto. O prazo estimado será calculado automaticamente.</p>
+          <div class="sla-list"><span>Crítica <b>4 horas</b></span><span>Alta <b>8 horas</b></span><span>Média <b>24 horas</b></span><span>Baixa <b>72 horas</b></span></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="view-notifications" data-view-panel="notifications" hidden>
+      <div class="notifications-heading"><div><p class="eyebrow">ATUALIZAÇÕES</p><h2>Minhas notificações</h2><p>Acompanhe os eventos mais recentes dos seus chamados.</p></div><span class="notification-mark" aria-hidden="true">✦</span></div>
+      <div class="card notifications-card"><div id="avisos" class="notification-list"></div></div>
+    </section>
+  </section>
+</main>
+<script src="/app.js?v=2"></script>
+</body>
+</html>

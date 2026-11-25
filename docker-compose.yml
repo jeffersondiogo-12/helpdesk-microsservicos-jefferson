@@ -1,0 +1,186 @@
+# HelpDesk TI em microsserviços. Tudo sobe com um comando:  docker compose up --build
+#
+# Só o gateway publica porta (127.0.0.1:8000). Usuários, Inventário, Chamados, Notificações e Redis
+# ficam numa rede interna: sem porta aberta para fora e sem saída para a internet.
+# Cada serviço tem o seu próprio volume com o seu próprio banco; nenhum enxerga o volume do outro.
+name: helpdesk-microsservicos
+
+x-servico: &servico
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - interna
+
+# Cada serviço responde GET /saude; o Compose usa isso para saber quando ele está pronto
+x-saude: &saude
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/saude', timeout=2)"]
+  interval: 5s
+  timeout: 3s
+  retries: 12
+  start_period: 5s
+
+# O MESMO segredo de login em todos os serviços (nunca no código). Vem do .env; se estiver vazio,
+# vem do arquivo gerado pelo serviço "segredos" na primeira subida.
+x-segredo: &segredo
+  JWT_SEGREDO: ${JWT_SEGREDO:-}
+  JWT_SEGREDO_FILE: /segredos/jwt
+
+services:
+  # Roda uma vez e termina: gera um segredo aleatório (se ainda não existe) e guarda no volume "segredos".
+  segredos:
+    image: python:3.12-slim
+    command:
+      - python
+      - -c
+      - |
+        import os, secrets
+        caminho = "/segredos/jwt"
+        if not os.path.exists(caminho) or os.path.getsize(caminho) == 0:
+            with open(caminho + ".tmp", "w") as arquivo:
+                arquivo.write(secrets.token_urlsafe(48))
+            os.replace(caminho + ".tmp", caminho)
+        os.chmod(caminho, 0o444)
+    volumes:
+      - segredos:/segredos
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
+  # ---- A porta de entrada ----
+  gateway:
+    <<: *servico
+    build: ./gateway
+    ports:
+      - "127.0.0.1:8000:8000"   # a única porta publicada do sistema, só acessível pelo próprio computador
+    environment:
+      USUARIOS_URL: http://usuarios:8000
+      INVENTARIO_URL: http://inventario:8000
+      CHAMADOS_URL: http://chamados:8000
+      NOTIFICACOES_URL: http://notificacoes:8000
+    networks:
+      - borda
+      - interna
+    depends_on:
+      usuarios:
+        condition: service_healthy
+      inventario:
+        condition: service_healthy
+      chamados:
+        condition: service_healthy
+      notificacoes:
+        condition: service_healthy
+    healthcheck: *saude
+
+  # ---- Os serviços (sem porta publicada) ----
+  usuarios:
+    <<: *servico
+    build: ./usuarios
+    environment:
+      <<: *segredo
+      DATABASE_URL: sqlite:////dados/usuarios.db
+      TOKEN_MINUTOS: ${TOKEN_MINUTOS:-60}
+      DADOS_EXEMPLO: ${DADOS_EXEMPLO:-1}
+      SENHA_EXEMPLO: ${SENHA_EXEMPLO:-Helpdesk2026}
+      DOCS: ${DOCS:-0}
+    volumes:
+      - usuarios-dados:/dados
+      - segredos:/segredos:ro
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+    healthcheck: *saude
+
+  inventario:
+    <<: *servico
+    build: ./inventario
+    environment:
+      <<: *segredo
+      DATABASE_URL: sqlite:////dados/inventario.db
+      DADOS_EXEMPLO: ${DADOS_EXEMPLO:-1}
+      DOCS: ${DOCS:-0}
+    volumes:
+      - inventario-dados:/dados
+      - segredos:/segredos:ro
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+    healthcheck: *saude
+
+  # Chamados chama Usuários e Inventário pela rede, mas não "depende" deles para subir:
+  # pode ser iniciado sozinho e continua de pé se um deles cair.
+  chamados:
+    <<: *servico
+    build: ./chamados
+    environment:
+      <<: *segredo
+      DATABASE_URL: sqlite:////dados/chamados.db
+      DADOS_EXEMPLO: ${DADOS_EXEMPLO:-1}
+      USUARIOS_URL: http://usuarios:8000
+      INVENTARIO_URL: http://inventario:8000
+      TIMEOUT_SEGUNDOS: ${TIMEOUT_SEGUNDOS:-3}
+      REDIS_URL: redis://redis:6379/0
+      DOCS: ${DOCS:-0}
+    volumes:
+      - chamados-dados:/dados
+      - segredos:/segredos:ro
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck: *saude
+
+  notificacoes:
+    <<: *servico
+    build: ./notificacoes
+    environment:
+      <<: *segredo
+      DATABASE_URL: sqlite:////dados/notificacoes.db
+      REDIS_URL: redis://redis:6379/0
+      DOCS: ${DOCS:-0}
+    volumes:
+      - notificacoes-dados:/dados
+      - segredos:/segredos:ro
+    depends_on:
+      segredos:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck: *saude
+
+  # ---- Fila de eventos ----
+  redis:
+    <<: *servico
+    image: redis:7-alpine
+    user: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-dados:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  borda: {}
+  interna:
+    internal: true   # sem acesso de fora e sem saída para a internet
+
+volumes:
+  usuarios-dados:
+  inventario-dados:
+  chamados-dados:
+  notificacoes-dados:
+  redis-dados:
+  segredos:

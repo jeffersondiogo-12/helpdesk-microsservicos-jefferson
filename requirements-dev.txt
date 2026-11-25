@@ -1,0 +1,7 @@
+# Tudo o que é preciso para rodar os testes de todos os serviços:  python scripts/testar_tudo.py
+# (cada serviço também tem o seu requirements-dev.txt, para ser instalado e testado sozinho)
+-r usuarios/requirements-dev.txt
+-r inventario/requirements-dev.txt
+-r chamados/requirements-dev.txt
+-r notificacoes/requirements-dev.txt
+-r gateway/requirements-dev.txt
